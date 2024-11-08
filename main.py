@@ -79,14 +79,13 @@ def load_metrics_to_dataframe():
     path = client.sync_folder
     for file_path in Path(path).glob("*/metrics/ftop/metrics.jsonl"):
         print("Found file:", file_path)
-        datasite = str(file_path).split("sync/")[-1].split("/metrics")[0]
         with open(file_path, "r") as f:
             for line in f:
                 record = json.loads(line)
                 records.append(
                     {
                         **record,
-                        "datasite": datasite,
+                        "datasite": client.email,
                     }
                 )
 
