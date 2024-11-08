@@ -1,0 +1,7 @@
+syftbox>=0.1.5
+psutil>=6.1.0
+pandas
+numpy
+pytz
+python-dateutil
+six
