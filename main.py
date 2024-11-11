@@ -40,13 +40,18 @@ settings.set("last_run", datetime.now().isoformat())
 if last_run is None:
     print("First run.")
 
-DATASITES = Path(f"{client.sync_folder}/datasites/")
+
+DATASITES = Path(client.sync_folder)
 MY_DATASITE = DATASITES / client.email
+
 PUBLIC_PATH = MY_DATASITE / "public"
+
 METRIC_STUB = "metrics/ftop.jsonl"
 METRIC_FILE_PATH = PUBLIC_PATH / METRIC_STUB
 PUBLISH_PATH = PUBLIC_PATH / "ftop"
+
 HOME_URL = f"{public_url(PUBLISH_PATH)}/index.html"
+
 
 MAX_LINES = 60 * 48  # 48 hours of data at one reading per minute
 INTERVAL = 60  # Metric collection interval in seconds
