@@ -127,7 +127,6 @@ def load_metrics_to_dataframe():
     return df
 
 
-# turn metrics into a dashboard
 def analyze_metrics():
     run_analysis = settings.get("run_analysis", None)
     if (run_analysis is None and client.email != __author__) or run_analysis is False:
@@ -148,15 +147,15 @@ def analyze_metrics():
     # Filter for last 48 hours
     recent_df = metrics_df[metrics_df["timestamp"] >= cutoff_time]
 
-    # Group data into 30-minute intervals for the time series
+    # Group data into 1-minute intervals for the time series
     time_intervals = pd.date_range(
-        start=cutoff_time, end=datetime.now(pytz.UTC), freq="30T", tz="UTC"
+        start=cutoff_time, end=datetime.now(pytz.UTC), freq="1T", tz="UTC"
     )
 
     historical_data = []
 
     for interval in time_intervals:
-        interval_end = interval + timedelta(minutes=30)
+        interval_end = interval + timedelta(minutes=1)
         interval_df = recent_df[
             (recent_df["timestamp"] >= interval)
             & (recent_df["timestamp"] < interval_end)

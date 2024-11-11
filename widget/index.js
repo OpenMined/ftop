@@ -1,4 +1,9 @@
-let cpuChart, memoryChart, historicalCPUChart, historicalRAMChart;
+let cpuChart,
+  memoryChart,
+  historicalCPUChart,
+  historicalRAMChart,
+  hourCPUChart,
+  hourRAMChart;
 let systems = [];
 
 function showStatus(message) {
@@ -103,64 +108,7 @@ function initializeCharts() {
     },
   });
 
-  // Historical Chart Options
-  const historicalChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {
-      duration: 0,
-    },
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: {
-          color: "#a9b1d6",
-          font: {
-            family: "Roboto",
-          },
-        },
-      },
-      tooltip: {
-        mode: "index",
-        intersect: false,
-        callbacks: {
-          title: function (context) {
-            return new Date(context[0].parsed.x).toLocaleString();
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        type: "time",
-        time: {
-          unit: "hour",
-          displayFormats: {
-            hour: "MMM d, HH:mm", // Changed 'D' to 'd'
-          },
-        },
-        ticks: {
-          color: "#a9b1d6",
-          maxRotation: 45,
-          minRotation: 45,
-        },
-        grid: {
-          color: "rgba(169, 177, 214, 0.1)",
-        },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: "#a9b1d6",
-        },
-        grid: {
-          color: "rgba(169, 177, 214, 0.1)",
-        },
-      },
-    },
-  };
-
-  // Common options for both charts
+  // Common options for time-series charts
   const commonOptions = {
     maintainAspectRatio: false,
     plugins: {
@@ -193,7 +141,7 @@ function initializeCharts() {
         time: {
           unit: "hour",
           displayFormats: {
-            hour: "HH:mm", // Simpler time format
+            hour: "HH:mm",
           },
         },
         grid: {
@@ -209,7 +157,7 @@ function initializeCharts() {
           },
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 8, // Limit number of x-axis labels
+          maxTicksLimit: 8,
         },
       },
       y: {
@@ -225,120 +173,110 @@ function initializeCharts() {
             size: 11,
           },
           padding: 8,
-          maxTicksLimit: 6, // Limit number of y-axis labels
+          maxTicksLimit: 6,
         },
       },
     },
     elements: {
       line: {
-        tension: 0.3, // Slightly smoother curves
-        borderWidth: 3, // Thicker lines
+        tension: 0.3,
+        borderWidth: 3,
       },
       point: {
-        radius: 0, // Hide points by default
-        hoverRadius: 5, // Show points on hover
-        hitRadius: 30, // Larger hover detection area
+        radius: 0,
+        hoverRadius: 5,
+        hitRadius: 30,
         hoverBorderWidth: 2,
       },
     },
   };
 
-  // Historical CPU Chart
-  const historicalCPUCtx = document
-    .getElementById("historicalCPUChart")
-    .getContext("2d");
-  historicalCPUChart = new Chart(historicalCPUCtx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "CPU Load Average",
-          data: [],
-          borderColor: "#7aa2f7",
-          backgroundColor: "rgba(122, 162, 247, 0.2)",
-          fill: true,
-          cubicInterpolationMode: "monotone",
-        },
-      ],
+  // Initialize the charts with common options
+  const charts = [
+    {
+      id: "historicalCPUChart",
+      color: "#7aa2f7",
+      label: "CPU Load Average",
+      chart: historicalCPUChart,
     },
-    options: {
-      ...commonOptions,
-      scales: {
-        ...commonOptions.scales,
-        y: {
-          ...commonOptions.scales.y,
-          beginAtZero: true,
-          suggestedMin: 0,
-          suggestedMax: (context) => {
-            const maxValue = Math.max(...context.chart.data.datasets[0].data);
-            return maxValue * 1.2; // Add 20% padding above max value
-          },
-          title: {
-            display: true,
-            text: "Load Average",
-            color: "#a9b1d6",
-            font: {
-              size: 13,
-              family: "Roboto",
-            },
-            padding: { bottom: 10 },
-          },
-        },
-      },
+    {
+      id: "historicalRAMChart",
+      color: "#bb9af7",
+      label: "RAM Usage",
+      chart: historicalRAMChart,
     },
-  });
+    {
+      id: "hourCPUChart",
+      color: "#f7768e",
+      label: "CPU Load Average (1h)",
+      chart: hourCPUChart,
+    },
+    {
+      id: "hourRAMChart",
+      color: "#9ece6a",
+      label: "RAM Usage (1h)",
+      chart: hourRAMChart,
+    },
+  ];
 
-  // Historical RAM Chart
-  const historicalRAMCtx = document
-    .getElementById("historicalRAMChart")
-    .getContext("2d");
-  historicalRAMChart = new Chart(historicalRAMCtx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "RAM Usage",
-          data: [],
-          borderColor: "#bb9af7",
-          backgroundColor: "rgba(187, 154, 247, 0.2)",
-          fill: true,
-          cubicInterpolationMode: "monotone",
-        },
-      ],
-    },
-    options: {
-      ...commonOptions,
-      scales: {
-        ...commonOptions.scales,
-        y: {
-          ...commonOptions.scales.y,
-          beginAtZero: true,
-          suggestedMin: (context) => {
-            const minValue = Math.min(...context.chart.data.datasets[0].data);
-            return Math.max(0, minValue - 5);
+  charts.forEach(({ id, color, label }) => {
+    const ctx = document.getElementById(id).getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label,
+            data: [],
+            borderColor: color,
+            backgroundColor: color
+              .replace(")", ", 0.2)")
+              .replace("rgb", "rgba"),
+            fill: true,
+            cubicInterpolationMode: "monotone",
           },
-          suggestedMax: (context) => {
-            const maxValue = Math.max(...context.chart.data.datasets[0].data);
-            return maxValue + 5;
-          },
-          title: {
-            display: true,
-            text: "RAM Usage (%)",
-            color: "#a9b1d6",
-            font: {
-              size: 13,
-              family: "Roboto",
+        ],
+      },
+      options: {
+        ...commonOptions,
+        scales: {
+          ...commonOptions.scales,
+          x: {
+            ...commonOptions.scales.x,
+            time: {
+              unit: id.includes("hour") ? "minute" : "hour",
+              displayFormats: {
+                minute: "HH:mm",
+                hour: "HH:mm",
+              },
             },
-            padding: { bottom: 10 },
+          },
+          y: {
+            ...commonOptions.scales.y,
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: label.includes("RAM") ? "RAM Usage (%)" : "Load Average",
+              color: "#a9b1d6",
+              font: {
+                size: 13,
+                family: "Roboto",
+              },
+              padding: { bottom: 10 },
+            },
           },
         },
       },
-    },
+    });
+
+    // Assign the chart to the corresponding variable
+    if (id === "historicalCPUChart") historicalCPUChart = chart;
+    else if (id === "historicalRAMChart") historicalRAMChart = chart;
+    else if (id === "hourCPUChart") hourCPUChart = chart;
+    else if (id === "hourRAMChart") hourRAMChart = chart;
   });
 }
-
 function updateStats(data) {
   document.getElementById("totalSystems").textContent = data.total_systems;
   document.getElementById("totalCPUs").textContent = data.total_cpus;
@@ -387,30 +325,48 @@ function updateCharts(data) {
   memoryChart.data.datasets[0].data = [usedRam, totalRam - usedRam];
   memoryChart.update();
 
-  // Update historical charts
   if (data.historical_data && data.historical_data.length > 0) {
     // Sort historical data by timestamp
     const sortedData = [...data.historical_data].sort(
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     );
 
-    // Update CPU history chart
-    historicalCPUChart.data.labels = sortedData.map(
-      (d) => new Date(d.timestamp)
+    // Filter last hour of data
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const hourData = sortedData.filter(
+      (d) => new Date(d.timestamp) >= oneHourAgo
     );
-    historicalCPUChart.data.datasets[0].data = sortedData.map(
-      (d) => d.cpu_load_avg
-    );
-    historicalCPUChart.update();
 
-    // Update RAM history chart
-    historicalRAMChart.data.labels = sortedData.map(
-      (d) => new Date(d.timestamp)
-    );
-    historicalRAMChart.data.datasets[0].data = sortedData.map(
-      (d) => d.ram_usage_percent
-    );
-    historicalRAMChart.update();
+    // Update time series charts
+    const chartUpdates = [
+      {
+        chart: historicalCPUChart,
+        data: sortedData,
+        valueKey: "cpu_load_avg",
+      },
+      {
+        chart: historicalRAMChart,
+        data: sortedData,
+        valueKey: "ram_usage_percent",
+      },
+      {
+        chart: hourCPUChart,
+        data: hourData,
+        valueKey: "cpu_load_avg",
+      },
+      {
+        chart: hourRAMChart,
+        data: hourData,
+        valueKey: "ram_usage_percent",
+      },
+    ];
+
+    // Update all charts
+    chartUpdates.forEach(({ chart, data, valueKey }) => {
+      chart.data.labels = data.map((d) => new Date(d.timestamp));
+      chart.data.datasets[0].data = data.map((d) => d[valueKey]);
+      chart.update();
+    });
   }
 }
 
@@ -438,11 +394,13 @@ async function loadDashboardData() {
 
     // Log data for debugging
     console.log("Historical data points:", data.historical_data.length);
-    console.log("First historical point:", data.historical_data[0]);
-    console.log(
-      "Last historical point:",
-      data.historical_data[data.historical_data.length - 1]
-    );
+    if (data.historical_data.length > 0) {
+      console.log("First historical point:", data.historical_data[0]);
+      console.log(
+        "Last historical point:",
+        data.historical_data[data.historical_data.length - 1]
+      );
+    }
 
     // Update all charts and stats
     updateCharts(data);

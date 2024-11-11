@@ -157,6 +157,39 @@
       </div>
 
       <div class="card">
+        <div class="label">System Stats</div>
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="label">Total Systems</div>
+            <div class="metric" id="totalSystems">-</div>
+          </div>
+          <div class="stat">
+            <div class="label">Total CPUs</div>
+            <div class="metric" id="totalCPUs">-</div>
+          </div>
+          <div class="stat">
+            <div class="label">Total RAM</div>
+            <div class="metric" id="totalRAM">-</div>
+          </div>
+          <div class="stat">
+            <div class="label">Avg Load</div>
+            <div class="metric" id="avgLoad">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">CPU Load (1 Hour)</div>
+        <div class="chart-container">
+          <canvas id="hourCPUChart"></canvas>
+        </div>
+        <div class="label">RAM Usage (1 Hour)</div>
+        <div class="chart-container">
+          <canvas id="hourRAMChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="label">CPU Load (48 Hours)</div>
         <div class="chart-container">
           <canvas id="historicalCPUChart"></canvas>
@@ -181,30 +214,8 @@
       </div>
 
       <div class="card">
-        <div class="label">System Stats</div>
-        <div class="stats-grid">
-          <div class="stat">
-            <div class="label">Total Systems</div>
-            <div class="metric" id="totalSystems">-</div>
-          </div>
-          <div class="stat">
-            <div class="label">Total CPUs</div>
-            <div class="metric" id="totalCPUs">-</div>
-          </div>
-          <div class="stat">
-            <div class="label">Avg Load</div>
-            <div class="metric" id="avgLoad">-</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
         <div class="label">Memory Statistics</div>
         <div class="stats-grid">
-          <div class="stat">
-            <div class="label">Total RAM</div>
-            <div class="metric" id="totalRAM">-</div>
-          </div>
           <div class="stat">
             <div class="label">Used RAM</div>
             <div class="metric" id="usedRAM">-</div>
