@@ -3,6 +3,8 @@
   <head>
     <title>ftop - Federated TOP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <!-- Update Roboto font import with correct weights -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -181,6 +183,20 @@
             <div class="label">Usage</div>
             <div class="metric" id="ramUsage">-</div>
           </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Historical CPU Load (48 Hours)</div>
+        <div class="chart-container">
+          <canvas id="historicalCPUChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Historical RAM Usage (48 Hours)</div>
+        <div class="chart-container">
+          <canvas id="historicalRAMChart"></canvas>
         </div>
       </div>
 

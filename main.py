@@ -1,10 +1,11 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 import psutil
+import pytz
 from syftbox.lib import Client, SyftPermission
 
 from sdk import (
@@ -16,9 +17,11 @@ from sdk import (
     truncate_file,
 )
 
-__version__ = "1.0.0"  # Define version for tracking
+# define version for future changes
+__version__ = "1.0.0"
 __author__ = "madhava@openmined.org"
 
+# load client
 try:
     client = Client.load()
 except Exception:
@@ -34,13 +37,17 @@ except Exception:
     del data["client_url"]
     client = Client(**data)
 
+# settings
 settings = Settings()
 last_run = settings.get("last_run", None)
 settings.set("last_run", datetime.now().isoformat())
+
+# do something on first install
 if last_run is None:
     print("First run.")
 
 
+# define paths
 DATASITES = Path(client.sync_folder)
 MY_DATASITE = DATASITES / client.email
 
@@ -52,11 +59,11 @@ PUBLISH_PATH = PUBLIC_PATH / "ftop"
 
 HOME_URL = f"{public_url(PUBLISH_PATH)}/index.html"
 
-
 MAX_LINES = 60 * 48  # 48 hours of data at one reading per minute
 INTERVAL = 60  # Metric collection interval in seconds
 
 
+# write json lines to a file periodically
 def get_metrics():
     if not should_run(METRIC_FILE_PATH, interval=INTERVAL):
         print("Skipping metric collection, not enough time has passed.")
@@ -96,6 +103,7 @@ def get_metrics():
     truncate_file(METRIC_FILE_PATH, max_lines=MAX_LINES)
 
 
+# aggregate metrics into a dataframe
 def load_metrics_to_dataframe():
     records = []
     results = datasites_file_glob(client, pattern=f"**/{METRIC_STUB}")
@@ -119,6 +127,7 @@ def load_metrics_to_dataframe():
     return df
 
 
+# turn metrics into a dashboard
 def analyze_metrics():
     run_analysis = settings.get("run_analysis", None)
     if (run_analysis is None and client.email != __author__) or run_analysis is False:
@@ -130,13 +139,49 @@ def analyze_metrics():
         print("No data available for analysis.")
         return {}
 
-    # Group by client/system (assuming files from different systems are in different paths)
+    # Convert timestamp to datetime if it's not already
+    metrics_df["timestamp"] = pd.to_datetime(metrics_df["timestamp"])
+
+    # Calculate the cutoff time for 48 hours ago (in UTC)
+    cutoff_time = datetime.now(pytz.UTC) - timedelta(hours=48)
+
+    # Filter for last 48 hours
+    recent_df = metrics_df[metrics_df["timestamp"] >= cutoff_time]
+
+    # Group data into 30-minute intervals for the time series
+    time_intervals = pd.date_range(
+        start=cutoff_time, end=datetime.now(pytz.UTC), freq="30T", tz="UTC"
+    )
+
+    historical_data = []
+
+    for interval in time_intervals:
+        interval_end = interval + timedelta(minutes=30)
+        interval_df = recent_df[
+            (recent_df["timestamp"] >= interval)
+            & (recent_df["timestamp"] < interval_end)
+        ]
+
+        if not interval_df.empty:
+            historical_data.append(
+                {
+                    "timestamp": interval.isoformat(),
+                    "cpu_load_avg": round(interval_df["cpu_load_1min"].mean(), 2),
+                    "ram_usage_percent": round(
+                        (interval_df["used_ram"].sum() / interval_df["total_ram"].sum())
+                        * 100,
+                        2,
+                    ),
+                    "active_systems": len(interval_df["datasite"].unique()),
+                }
+            )
+
+    # Rest of the function remains the same
     systems_data = []
     datasites = []
 
     for datasite in metrics_df["datasite"].unique():
         system_df = metrics_df[metrics_df["datasite"] == datasite]
-        # Get the latest record for this system
         latest = system_df.sort_values("timestamp").iloc[-1]
 
         system_data = {
@@ -153,7 +198,6 @@ def analyze_metrics():
         systems_data.append(system_data)
         datasites.append(datasite)
 
-    # Calculate summary statistics
     summary_stats = {
         "total_systems": len(systems_data),
         "total_cpus": sum(sys["num_cores"] for sys in systems_data),
@@ -175,6 +219,7 @@ def analyze_metrics():
             ),
         },
         "datasites": sorted(datasites),
+        "historical_data": historical_data,
     }
 
     ensure(
