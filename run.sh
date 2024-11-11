@@ -11,7 +11,7 @@ else
     echo "Virtual environment already exists."
 fi
 
-source .venv/bin/activate
+. .venv/bin/activate
 
 # # run app using python from venv
 echo "Running ftop with $(python3 --version) at '$(which python3)'"
