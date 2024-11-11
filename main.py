@@ -19,8 +19,21 @@ from sdk import (
 __version__ = "1.0.0"  # Define version for tracking
 __author__ = "madhava@openmined.org"
 
+try:
+    client = Client.load()
+except Exception:
+    # temp work around for old syftbox
+    config_path = os.path.expanduser("~/.syftbox/config.json")
 
-client = Client.load()
+    with open(config_path, "r") as f:
+        data = json.load(f)
+
+    data["sync_folder"] = data["data_dir"] + "/datasites"
+    data["config_path"] = config_path
+    del data["data_dir"]
+    del data["client_url"]
+    client = Client(**data)
+
 settings = Settings()
 last_run = settings.get("last_run", None)
 settings.set("last_run", datetime.now().isoformat())
