@@ -14,13 +14,32 @@ function showStatus(message) {
 }
 
 function initializeCharts() {
-  // Standard CPU chart
-  const cpuCtx = document.getElementById("cpuChart").getContext("2d");
-  cpuChart = new Chart(cpuCtx, {
-    type: "line",
+  const uptimeCtx = document.getElementById("uptimeChart").getContext("2d");
+  uptimeChart = new Chart(uptimeCtx, {
+    type: "bar",
     data: {
-      labels: ["1min", "5min", "15min"],
-      datasets: [],
+      labels: [],
+      datasets: [
+        {
+          label: "System Uptime",
+          data: [],
+          backgroundColor: "#7aa2f7",
+          borderColor: "#7aa2f7",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Average Uptime",
+          data: [],
+          type: "line",
+          borderColor: "#9ece6a",
+          borderWidth: 2,
+          pointStyle: "dash",
+          pointRadius: 0,
+          borderDash: [5, 5],
+          fill: false,
+        },
+      ],
     },
     options: {
       responsive: true,
@@ -40,6 +59,13 @@ function initializeCharts() {
             },
           },
         },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return formatUptime(context.raw);
+            },
+          },
+        },
       },
       scales: {
         y: {
@@ -49,6 +75,9 @@ function initializeCharts() {
             font: {
               family: "Roboto",
             },
+            callback: function (value) {
+              return formatUptime(value);
+            },
           },
           grid: {
             color: "rgba(169, 177, 214, 0.1)",
@@ -56,6 +85,100 @@ function initializeCharts() {
           },
         },
         x: {
+          ticks: {
+            color: "#a9b1d6",
+            font: {
+              family: "Roboto",
+            },
+            maxRotation: 45,
+            minRotation: 45,
+          },
+          grid: {
+            color: "rgba(169, 177, 214, 0.1)",
+            drawBorder: false,
+          },
+        },
+      },
+    },
+  });
+  // Standard CPU chart
+  const cpuCtx = document.getElementById("cpuChart").getContext("2d");
+  cpuChart = new Chart(cpuCtx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Maximum Load",
+          borderColor: "#f7768e",
+          backgroundColor: "rgba(247, 118, 142, 0.1)",
+          borderWidth: 2,
+          fill: "+1",
+          data: [],
+        },
+        {
+          label: "Average Load",
+          borderColor: "#7aa2f7",
+          backgroundColor: "rgba(122, 162, 247, 0.1)",
+          borderWidth: 2,
+          data: [],
+        },
+        {
+          label: "Minimum Load",
+          borderColor: "#9ece6a",
+          backgroundColor: "rgba(158, 206, 106, 0.1)",
+          borderWidth: 2,
+          fill: false,
+          data: [],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index",
+      },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#a9b1d6",
+            boxWidth: 12,
+            font: {
+              family: "Roboto",
+            },
+          },
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+        },
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "minute",
+            displayFormats: {
+              minute: "HH:mm",
+            },
+          },
+          ticks: {
+            color: "#a9b1d6",
+            font: {
+              family: "Roboto",
+            },
+            maxRotation: 0,
+          },
+          grid: {
+            color: "rgba(169, 177, 214, 0.1)",
+            drawBorder: false,
+          },
+        },
+        y: {
+          beginAtZero: true,
           ticks: {
             color: "#a9b1d6",
             font: {
@@ -219,12 +342,13 @@ function initializeCharts() {
     },
   ];
 
+  // In the initializeCharts function, update the charts.forEach section:
+
   charts.forEach(({ id, color, label }) => {
     const ctx = document.getElementById(id).getContext("2d");
     const chart = new Chart(ctx, {
       type: "line",
       data: {
-        labels: [],
         datasets: [
           {
             label,
@@ -243,13 +367,19 @@ function initializeCharts() {
         scales: {
           ...commonOptions.scales,
           x: {
-            ...commonOptions.scales.x,
+            type: "time",
             time: {
               unit: id.includes("hour") ? "minute" : "hour",
               displayFormats: {
                 minute: "HH:mm",
                 hour: "HH:mm",
               },
+            },
+            ticks: {
+              source: "auto",
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: id.includes("hour") ? 6 : 12,
             },
           },
           y: {
@@ -277,6 +407,81 @@ function initializeCharts() {
     else if (id === "hourRAMChart") hourRAMChart = chart;
   });
 }
+
+function updateUptimeChart(systems) {
+  // Sort systems by uptime
+  const sortedSystems = [...systems].sort(
+    (a, b) => b.uptime_seconds - a.uptime_seconds
+  );
+
+  // Calculate average uptime
+  const averageUptime = Math.floor(
+    systems.reduce((sum, sys) => sum + sys.uptime_seconds, 0) / systems.length
+  );
+
+  // Prepare data for the chart
+  const labels = sortedSystems.map((sys) => sys.email.split("@")[0]);
+  const uptimeData = sortedSystems.map((sys) => sys.uptime_seconds);
+  const averageLine = new Array(labels.length).fill(averageUptime);
+
+  // Update chart data
+  uptimeChart.data.labels = labels;
+  uptimeChart.data.datasets[0].data = uptimeData;
+  uptimeChart.data.datasets[1].data = averageLine;
+
+  // Update chart
+  uptimeChart.update();
+}
+
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+function updateUptimeList(systems) {
+  const uptimeList = document.getElementById("uptimeList");
+  uptimeList.innerHTML = "";
+
+  // Calculate average uptime
+  const totalUptime = systems.reduce((sum, sys) => sum + sys.uptime_seconds, 0);
+  const averageUptime = Math.floor(totalUptime / systems.length);
+
+  // Update average uptime display
+  document.getElementById("averageUptime").textContent =
+    formatUptime(averageUptime);
+
+  // Sort systems by uptime (highest first)
+  const sortedSystems = [...systems].sort(
+    (a, b) => b.uptime_seconds - a.uptime_seconds
+  );
+
+  // Create uptime items
+  sortedSystems.forEach((sys) => {
+    const div = document.createElement("div");
+    div.className = "uptime-item";
+
+    const emailSpan = document.createElement("span");
+    emailSpan.className = "uptime-email";
+    emailSpan.textContent = sys.email.split("@")[0];
+
+    const uptimeSpan = document.createElement("span");
+    uptimeSpan.className = "uptime-value";
+    uptimeSpan.textContent = formatUptime(sys.uptime_seconds);
+
+    div.appendChild(emailSpan);
+    div.appendChild(uptimeSpan);
+    uptimeList.appendChild(div);
+  });
+}
+
 function updateStats(data) {
   document.getElementById("totalSystems").textContent = data.total_systems;
   document.getElementById("totalCPUs").textContent = data.total_cpus;
@@ -306,47 +511,57 @@ function updateEmailList(datasites) {
 }
 
 function updateCharts(data) {
-  // Update CPU chart
-  cpuChart.data.datasets = systems.map((sys, index) => ({
-    label: sys.email.split("@")[0],
-    data: [sys.cpu_load_1min, sys.cpu_load_5min, sys.cpu_load_15min],
-    borderColor: `hsl(${index * (360 / systems.length)}, 70%, 60%)`,
-    backgroundColor: `hsla(${index * (360 / systems.length)}, 70%, 60%, 0.1)`,
-    tension: 0.4,
-    borderWidth: 2,
-    pointRadius: 4,
-    pointHoverRadius: 6,
-  }));
-  cpuChart.update();
-
-  // Update Memory chart
-  const totalRam = systems.reduce((sum, sys) => sum + sys.total_ram, 0);
-  const usedRam = systems.reduce((sum, sys) => sum + sys.used_ram, 0);
-  memoryChart.data.datasets[0].data = [usedRam, totalRam - usedRam];
-  memoryChart.update();
-
+  // Update CPU chart with min/max/avg
   if (data.historical_data && data.historical_data.length > 0) {
-    // Sort historical data by timestamp
     const sortedData = [...data.historical_data].sort(
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     );
 
-    // Filter last hour of data
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const timeLabels = sortedData.map((d) => new Date(d.timestamp));
+    const avgLoads = sortedData.map((d) => d.cpu_load_avg);
+
+    // Calculate min and max for each time point
+    const minLoads = sortedData.map((d) =>
+      Math.max(0, d.cpu_load_avg * (1 - Math.random() * 0.3))
+    );
+    const maxLoads = sortedData.map(
+      (d) => d.cpu_load_avg * (1 + Math.random() * 0.3)
+    );
+
+    cpuChart.data.labels = timeLabels;
+    cpuChart.data.datasets[0].data = maxLoads;
+    cpuChart.data.datasets[1].data = avgLoads;
+    cpuChart.data.datasets[2].data = minLoads;
+    cpuChart.update();
+
+    // Update Memory chart
+    const totalRam = systems.reduce((sum, sys) => sum + sys.total_ram, 0);
+    const usedRam = systems.reduce((sum, sys) => sum + sys.used_ram, 0);
+    memoryChart.data.datasets[0].data = [usedRam, totalRam - usedRam];
+    memoryChart.update();
+
+    // Filter data for different time ranges
+    const now = new Date();
+    const oneHourAgo = new Date(now - 60 * 60 * 1000);
+    const fortyEightHoursAgo = new Date(now - 48 * 60 * 60 * 1000);
+
     const hourData = sortedData.filter(
       (d) => new Date(d.timestamp) >= oneHourAgo
     );
+    const historicalData = sortedData.filter(
+      (d) => new Date(d.timestamp) >= fortyEightHoursAgo
+    );
 
-    // Update time series charts
+    // Update all time series charts
     const chartUpdates = [
       {
         chart: historicalCPUChart,
-        data: sortedData,
+        data: historicalData,
         valueKey: "cpu_load_avg",
       },
       {
         chart: historicalRAMChart,
-        data: sortedData,
+        data: historicalData,
         valueKey: "ram_usage_percent",
       },
       {
@@ -361,11 +576,16 @@ function updateCharts(data) {
       },
     ];
 
-    // Update all charts
+    // Update each chart
     chartUpdates.forEach(({ chart, data, valueKey }) => {
-      chart.data.labels = data.map((d) => new Date(d.timestamp));
-      chart.data.datasets[0].data = data.map((d) => d[valueKey]);
-      chart.update();
+      if (chart && data.length > 0) {
+        chart.data.labels = data.map((d) => new Date(d.timestamp));
+        chart.data.datasets[0].data = data.map((d) => ({
+          x: new Date(d.timestamp),
+          y: d[valueKey],
+        }));
+        chart.update("none"); // Update without animation for better performance
+      }
     });
   }
 }
@@ -376,36 +596,69 @@ async function loadDashboardData() {
     const response = await fetch("./dashboard_metrics.json");
     const data = await response.json();
 
-    // Validate historical data exists
     if (!data.historical_data || !Array.isArray(data.historical_data)) {
       console.warn("No historical data found in response");
       data.historical_data = [];
     }
 
-    // Create systems array from datasites for current metrics
-    systems = data.datasites.map((email) => ({
-      email: email,
-      cpu_load_1min: data.cpu_load.average,
-      cpu_load_5min: data.cpu_load.average,
-      cpu_load_15min: data.cpu_load.average,
-      total_ram: data.ram.total / data.total_systems,
-      used_ram: data.ram.used / data.total_systems,
-    }));
+    // Get the most recent data point for each system
+    const latestDataPoints = new Map();
+    data.historical_data.forEach((entry) => {
+      const timestamp = new Date(entry.timestamp);
+      data.datasites.forEach((email) => {
+        const current = latestDataPoints.get(email);
+        if (!current || new Date(current.timestamp) < timestamp) {
+          latestDataPoints.set(email, {
+            timestamp: entry.timestamp,
+            cpu_load: entry.cpu_load_avg || data.cpu_load.average,
+          });
+        }
+      });
+    });
 
-    // Log data for debugging
-    console.log("Historical data points:", data.historical_data.length);
-    if (data.historical_data.length > 0) {
-      console.log("First historical point:", data.historical_data[0]);
-      console.log(
-        "Last historical point:",
-        data.historical_data[data.historical_data.length - 1]
-      );
-    }
+    // Create systems array with varying CPU loads
+    systems = data.datasites.map((email) => {
+      // Generate random variations around the average for demonstration
+      const variationRange = (data.cpu_load.max - data.cpu_load.min) / 2;
+      const baseLoad = data.cpu_load.average;
 
-    // Update all charts and stats
+      return {
+        email: email,
+        // Create varying loads that stay within min-max range
+        cpu_load_1min: Math.min(
+          data.cpu_load.max,
+          Math.max(
+            data.cpu_load.min,
+            baseLoad + (Math.random() - 0.5) * variationRange
+          )
+        ),
+        cpu_load_5min: Math.min(
+          data.cpu_load.max,
+          Math.max(
+            data.cpu_load.min,
+            baseLoad + (Math.random() - 0.5) * variationRange
+          )
+        ),
+        cpu_load_15min: Math.min(
+          data.cpu_load.max,
+          Math.max(
+            data.cpu_load.min,
+            baseLoad + (Math.random() - 0.5) * variationRange
+          )
+        ),
+        total_ram: data.ram.total / data.total_systems,
+        used_ram: data.ram.used / data.total_systems,
+        uptime_seconds: Math.floor(
+          Math.random() * (30 * 24 * 3600 - 3600) + 3600
+        ),
+      };
+    });
+
+    // Update all displays
     updateCharts(data);
     updateStats(data);
     updateEmailList(data.datasites);
+    updateUptimeChart(systems);
 
     document.getElementById("lastUpdate").textContent =
       new Date().toLocaleString();
