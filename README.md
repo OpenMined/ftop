@@ -1,4 +1,5 @@
 ---
+name: ftop
 author: "madhava@openmined.org"
 version: 1.0.0
 source: https://github.com/openmined/ftop
