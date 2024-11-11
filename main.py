@@ -1,42 +1,46 @@
-from datetime import datetime, timezone
-import os
 import json
+import os
+from datetime import datetime, timezone
 from pathlib import Path
-import psutil
+
 import pandas as pd
+import psutil
 from syftbox.lib import Client, SyftPermission
 
+from sdk import (
+    Settings,
+    datasites_file_glob,
+    ensure,
+    public_url,
+    should_run,
+    truncate_file,
+)
+
 __version__ = "1.0.0"  # Define version for tracking
-GENERATE_PAGE = True  # Control whether data analysis is run
+__author__ = "madhava@openmined.org"
+
 
 client = Client.load()
-METRIC_FILE_PATH = Path(f"{client.datasite_path}/metrics/ftop/metrics.jsonl")
-PUBLISH_PATH = Path(f"{client.datasite_path}/public/ftop")
+settings = Settings()
+last_run = settings.get("last_run", None)
+settings.set("last_run", datetime.now().isoformat())
+if last_run is None:
+    print("First run.")
+
+DATASITES = Path(f"{client.sync_folder}/datasites/")
+MY_DATASITE = DATASITES / client.email
+PUBLIC_PATH = MY_DATASITE / "public"
+METRIC_STUB = "metrics/ftop.jsonl"
+METRIC_FILE_PATH = PUBLIC_PATH / METRIC_STUB
+PUBLISH_PATH = PUBLIC_PATH / "ftop"
+HOME_URL = f"{public_url(PUBLISH_PATH)}/index.html"
+
 MAX_LINES = 60 * 48  # 48 hours of data at one reading per minute
 INTERVAL = 60  # Metric collection interval in seconds
 
 
-def should_run(output_file_path: str) -> bool:
-    if not os.path.exists(output_file_path):
-        return True
-
-    last_modified_time = datetime.fromtimestamp(os.path.getmtime(output_file_path))
-    time_diff = datetime.now(timezone.utc) - last_modified_time.astimezone(timezone.utc)
-
-    return time_diff.total_seconds() >= INTERVAL
-
-
-def truncate_file(file_path: Path):
-    with open(file_path, "r") as f:
-        lines = f.readlines()
-
-    if len(lines) > MAX_LINES:
-        with open(file_path, "w") as f:
-            f.writelines(lines[-MAX_LINES:])
-
-
 def get_metrics():
-    if not should_run(METRIC_FILE_PATH):
+    if not should_run(METRIC_FILE_PATH, interval=INTERVAL):
         print("Skipping metric collection, not enough time has passed.")
         return
 
@@ -71,13 +75,14 @@ def get_metrics():
     with open(METRIC_FILE_PATH, mode="a") as f:
         f.write(json.dumps(data) + "\n")
 
-    truncate_file(METRIC_FILE_PATH)
+    truncate_file(METRIC_FILE_PATH, max_lines=MAX_LINES)
 
 
 def load_metrics_to_dataframe():
     records = []
-    path = client.sync_folder
-    for file_path in Path(path).glob("*/metrics/ftop/metrics.jsonl"):
+    results = datasites_file_glob(client, pattern=f"**/{METRIC_STUB}")
+    print("results", results)
+    for datasite, file_path in results:
         print("Found file:", file_path)
         with open(file_path, "r") as f:
             for line in f:
@@ -85,7 +90,7 @@ def load_metrics_to_dataframe():
                 records.append(
                     {
                         **record,
-                        "datasite": client.email,
+                        "datasite": datasite,
                     }
                 )
 
@@ -97,6 +102,10 @@ def load_metrics_to_dataframe():
 
 
 def analyze_metrics():
+    run_analysis = settings.get("run_analysis", None)
+    if (run_analysis is None and client.email != __author__) or run_analysis is False:
+        return
+
     metrics_df = load_metrics_to_dataframe()
     metrics_df.to_csv("./metrics.csv")
     if metrics_df.empty:
@@ -121,7 +130,7 @@ def analyze_metrics():
             "total_ram": int(latest["total_ram"]),
             "used_ram": int(latest["used_ram"]),
             "uptime_seconds": int(latest["uptime_seconds"]),
-            "email": str(datasite),  # Extracting email from path
+            "email": str(datasite),
         }
         systems_data.append(system_data)
         datasites.append(datasite)
@@ -150,30 +159,16 @@ def analyze_metrics():
         "datasites": sorted(datasites),
     }
 
-    # Save the output to a JSON file
-    os.makedirs(PUBLISH_PATH, exist_ok=True)
+    ensure(["./widget/index.html", "./widget/index.js"], PUBLISH_PATH)
+
     output_path = PUBLISH_PATH / "dashboard_metrics.json"
     with open(output_path, "w") as f:
         json.dump(summary_stats, f, indent=2)
 
-    DASHBOARD = PUBLISH_PATH / "dashboard"
-
-    # Clear the destination directory by removing it entirely, then recreate it
-    if os.path.exists(DASHBOARD):
-        import shutil
-
-        shutil.rmtree(DASHBOARD)
-
-    os.makedirs(DASHBOARD, exist_ok=True)
-    shutil.copytree("./widget", DASHBOARD, dirs_exist_ok=True)
-
-    print(f"Dashboard published to {DASHBOARD}")
+    print(f"Dashboard published to {HOME_URL}")
     return summary_stats
 
 
 # Run metric collection
 get_metrics()
-
-# Optionally run data analysis
-if GENERATE_PAGE:
-    analyze_metrics()
+analyze_metrics()

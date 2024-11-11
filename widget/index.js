@@ -131,7 +131,7 @@ function updateCharts() {
 async function loadDashboardData() {
   try {
     showStatus("Updating dashboard...");
-    const response = await fetch("../dashboard_metrics.json");
+    const response = await fetch("./dashboard_metrics.json");
     const data = await response.json();
 
     // Create systems array from datasites
