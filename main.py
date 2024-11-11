@@ -177,7 +177,10 @@ def analyze_metrics():
         "datasites": sorted(datasites),
     }
 
-    ensure(["./widget/index.html", "./widget/index.js"], PUBLISH_PATH)
+    ensure(
+        ["./widget/index.html", "./widget/index.js", "./widget/syftbox-sdk.js"],
+        PUBLISH_PATH,
+    )
 
     output_path = PUBLISH_PATH / "dashboard_metrics.json"
     with open(output_path, "w") as f:

@@ -131,6 +131,22 @@
   </head>
   <body>
     <div class="dashboard">
+      <div id="syftbox-api-badge"></div>
+      <script src="syftbox-sdk.js"></script>
+      <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+          await APIBadge.initialized;
+          APIBadge.show("https://github.com/openmined/ftop");
+
+          // full syntax mode
+          // APIBadge.show(
+          //   "ftop",
+          //   "1.0.1",
+          //   "https://github.com/openmined/ftop",
+          //   "https://raw.githubusercontent.com/OpenMined/ftop/refs/heads/main/icon.png"
+          // );
+        });
+      </script>
       <div class="header">
         <h1>ftop - Federated TOP</h1>
         <div class="last-update">
@@ -216,6 +232,7 @@
         document.body.classList.add("loaded");
       });
     </script>
+    <script src="syftbox-sdk.js"></script>
     <script src="index.js"></script>
   </body>
 </html>
