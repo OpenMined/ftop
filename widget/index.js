@@ -160,6 +160,89 @@ function initializeCharts() {
     },
   };
 
+  // Common options for both charts
+  const commonOptions = {
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: "index",
+        intersect: false,
+        backgroundColor: "rgba(30, 32, 47, 0.9)",
+        titleColor: "#a9b1d6",
+        bodyColor: "#a9b1d6",
+        borderColor: "#7aa2f7",
+        borderWidth: 1,
+        padding: 12,
+        bodyFont: {
+          family: "Roboto",
+          size: 13,
+        },
+        titleFont: {
+          family: "Roboto",
+          size: 14,
+          weight: "bold",
+        },
+      },
+    },
+    scales: {
+      x: {
+        type: "time",
+        time: {
+          unit: "hour",
+          displayFormats: {
+            hour: "HH:mm", // Simpler time format
+          },
+        },
+        grid: {
+          display: true,
+          color: "rgba(169, 177, 214, 0.1)",
+          drawBorder: false,
+        },
+        ticks: {
+          color: "#a9b1d6",
+          font: {
+            family: "Roboto",
+            size: 11,
+          },
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 8, // Limit number of x-axis labels
+        },
+      },
+      y: {
+        grid: {
+          display: true,
+          color: "rgba(169, 177, 214, 0.1)",
+          drawBorder: false,
+        },
+        ticks: {
+          color: "#a9b1d6",
+          font: {
+            family: "Roboto",
+            size: 11,
+          },
+          padding: 8,
+          maxTicksLimit: 6, // Limit number of y-axis labels
+        },
+      },
+    },
+    elements: {
+      line: {
+        tension: 0.3, // Slightly smoother curves
+        borderWidth: 3, // Thicker lines
+      },
+      point: {
+        radius: 0, // Hide points by default
+        hoverRadius: 5, // Show points on hover
+        hitRadius: 30, // Larger hover detection area
+        hoverBorderWidth: 2,
+      },
+    },
+  };
+
   // Historical CPU Chart
   const historicalCPUCtx = document
     .getElementById("historicalCPUChart")
@@ -170,29 +253,36 @@ function initializeCharts() {
       labels: [],
       datasets: [
         {
-          label: "Average CPU Load",
+          label: "CPU Load Average",
           data: [],
           borderColor: "#7aa2f7",
-          backgroundColor: "rgba(122, 162, 247, 0.1)",
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          backgroundColor: "rgba(122, 162, 247, 0.2)",
           fill: true,
+          cubicInterpolationMode: "monotone",
         },
       ],
     },
     options: {
-      ...historicalChartOptions,
+      ...commonOptions,
       scales: {
-        ...historicalChartOptions.scales,
+        ...commonOptions.scales,
         y: {
-          ...historicalChartOptions.scales.y,
-          suggestedMax: 100,
+          ...commonOptions.scales.y,
+          beginAtZero: true,
+          suggestedMin: 0,
+          suggestedMax: (context) => {
+            const maxValue = Math.max(...context.chart.data.datasets[0].data);
+            return maxValue * 1.2; // Add 20% padding above max value
+          },
           title: {
             display: true,
-            text: "CPU Load (%)",
+            text: "Load Average",
             color: "#a9b1d6",
+            font: {
+              size: 13,
+              family: "Roboto",
+            },
+            padding: { bottom: 10 },
           },
         },
       },
@@ -212,26 +302,36 @@ function initializeCharts() {
           label: "RAM Usage",
           data: [],
           borderColor: "#bb9af7",
-          backgroundColor: "rgba(187, 154, 247, 0.1)",
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          backgroundColor: "rgba(187, 154, 247, 0.2)",
           fill: true,
+          cubicInterpolationMode: "monotone",
         },
       ],
     },
     options: {
-      ...historicalChartOptions,
+      ...commonOptions,
       scales: {
-        ...historicalChartOptions.scales,
+        ...commonOptions.scales,
         y: {
-          ...historicalChartOptions.scales.y,
-          suggestedMax: 100,
+          ...commonOptions.scales.y,
+          beginAtZero: true,
+          suggestedMin: (context) => {
+            const minValue = Math.min(...context.chart.data.datasets[0].data);
+            return Math.max(0, minValue - 5);
+          },
+          suggestedMax: (context) => {
+            const maxValue = Math.max(...context.chart.data.datasets[0].data);
+            return maxValue + 5;
+          },
           title: {
             display: true,
             text: "RAM Usage (%)",
             color: "#a9b1d6",
+            font: {
+              size: 13,
+              family: "Roboto",
+            },
+            padding: { bottom: 10 },
           },
         },
       },

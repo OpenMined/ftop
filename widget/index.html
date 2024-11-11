@@ -157,19 +157,13 @@
       </div>
 
       <div class="card">
-        <div class="label">CPU Load Average</div>
+        <div class="label">CPU Load (48 Hours)</div>
         <div class="chart-container">
-          <canvas id="cpuChart"></canvas>
+          <canvas id="historicalCPUChart"></canvas>
         </div>
-        <div class="stats-grid">
-          <div class="stat">
-            <div class="label">Min</div>
-            <div class="metric" id="minLoad">-</div>
-          </div>
-          <div class="stat">
-            <div class="label">Max</div>
-            <div class="metric" id="maxLoad">-</div>
-          </div>
+        <div class="label">RAM Usage (48 Hours)</div>
+        <div class="chart-container">
+          <canvas id="historicalRAMChart"></canvas>
         </div>
       </div>
 
@@ -183,20 +177,6 @@
             <div class="label">Usage</div>
             <div class="metric" id="ramUsage">-</div>
           </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="label">Historical CPU Load (48 Hours)</div>
-        <div class="chart-container">
-          <canvas id="historicalCPUChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="label">Historical RAM Usage (48 Hours)</div>
-        <div class="chart-container">
-          <canvas id="historicalRAMChart"></canvas>
         </div>
       </div>
 
@@ -228,6 +208,23 @@
           <div class="stat">
             <div class="label">Used RAM</div>
             <div class="metric" id="usedRAM">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">CPU Load Average</div>
+        <div class="chart-container">
+          <canvas id="cpuChart"></canvas>
+        </div>
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="label">Min</div>
+            <div class="metric" id="minLoad">-</div>
+          </div>
+          <div class="stat">
+            <div class="label">Max</div>
+            <div class="metric" id="maxLoad">-</div>
           </div>
         </div>
       </div>

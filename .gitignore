@@ -163,3 +163,4 @@ cython_debug/
 
 metrics.csv
 settings.json
+widget/dashboard_metrics.json
