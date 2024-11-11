@@ -280,11 +280,11 @@
       } catch (error) {
         console.error("Error fetching API status:", error);
         this.renderBadge(
-          "error",
-          "Error",
-          apiName,
-          version,
-          () => this._show(apiName, version, source, iconUrl),
+          "install-syftbox",
+          "Install SyftBox",
+          "",
+          "",
+          () => window.open("https://syftbox.openmined.org/", "_blank"),
           iconUrl
         );
       }
@@ -358,11 +358,11 @@
       } catch (error) {
         console.error("Error installing API:", error);
         this.renderBadge(
-          "error",
-          "Error",
-          "ftop",
-          version,
-          () => this.installAPI(source, version, iconUrl),
+          "install-syftbox",
+          "Install SyftBox",
+          "SyftBox",
+          "Latest",
+          () => window.open("https://syftbox.openmined.org/", "_blank"),
           iconUrl
         );
       }
