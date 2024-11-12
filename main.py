@@ -178,10 +178,16 @@ def analyze_metrics():
     # Rest of the function remains the same
     systems_data = []
     datasites = []
-
+    user_uptimes = []
     for datasite in metrics_df["datasite"].unique():
         system_df = metrics_df[metrics_df["datasite"] == datasite]
         latest = system_df.sort_values("timestamp").iloc[-1]
+
+        user_uptime = {
+            "uptime_seconds": int(latest["uptime_seconds"]),
+            "email": str(datasite),
+        }
+        user_uptimes.append(user_uptime)
 
         system_data = {
             "timestamp": latest["timestamp"].isoformat(),
@@ -219,6 +225,7 @@ def analyze_metrics():
         },
         "datasites": sorted(datasites),
         "historical_data": historical_data,
+        "user_uptimes": user_uptimes,
     }
 
     ensure(
@@ -227,6 +234,12 @@ def analyze_metrics():
     )
 
     output_path = PUBLISH_PATH / "dashboard_metrics.json"
+    with open(output_path, "w") as f:
+        json.dump(summary_stats, f, indent=2)
+        print(f"Writing json to {output_path}")
+
+    # for dev
+    output_path = "./widget/dashboard_metrics.json"
     with open(output_path, "w") as f:
         json.dump(summary_stats, f, indent=2)
 

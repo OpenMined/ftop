@@ -618,39 +618,17 @@ async function loadDashboardData() {
 
     // Create systems array with varying CPU loads
     systems = data.datasites.map((email) => {
-      // Generate random variations around the average for demonstration
-      const variationRange = (data.cpu_load.max - data.cpu_load.min) / 2;
-      const baseLoad = data.cpu_load.average;
+      // Find the matching uptime data
+      const uptimeData = data.user_uptimes.find((u) => u.email === email) || {
+        uptime_seconds: 0,
+      };
 
       return {
         email: email,
         // Create varying loads that stay within min-max range
-        cpu_load_1min: Math.min(
-          data.cpu_load.max,
-          Math.max(
-            data.cpu_load.min,
-            baseLoad + (Math.random() - 0.5) * variationRange
-          )
-        ),
-        cpu_load_5min: Math.min(
-          data.cpu_load.max,
-          Math.max(
-            data.cpu_load.min,
-            baseLoad + (Math.random() - 0.5) * variationRange
-          )
-        ),
-        cpu_load_15min: Math.min(
-          data.cpu_load.max,
-          Math.max(
-            data.cpu_load.min,
-            baseLoad + (Math.random() - 0.5) * variationRange
-          )
-        ),
         total_ram: data.ram.total / data.total_systems,
         used_ram: data.ram.used / data.total_systems,
-        uptime_seconds: Math.floor(
-          Math.random() * (30 * 24 * 3600 - 3600) + 3600
-        ),
+        uptime_seconds: uptimeData.uptime_seconds, // Use the actual uptime
       };
     });
 
